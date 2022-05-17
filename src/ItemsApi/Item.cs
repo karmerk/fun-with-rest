@@ -3,7 +3,9 @@
 public record Item(int Id, string Name, string Description);
 
 
-public sealed class Items
+
+
+public sealed class Items : IRepository<int, Item>
 {
     public readonly Dictionary<int, Item> _items = new Dictionary<int, Item>()
     {
@@ -13,9 +15,9 @@ public sealed class Items
         { 4, new Item(4, "Item 4", "Description 4") },
     };
 
-    public void Create(Item item)
+    public void Create(int key, Item item)
     {
-        _items.Add(item.Id, item);
+        _items.Add(key, item with { Id = key });
     }
 
     public Item? Read(int id)
@@ -27,9 +29,9 @@ public sealed class Items
         return null;
     }
 
-    public void Update(Item item)
+    public void Update(int key, Item item)
     {
-        _items[item.Id] = item;
+        _items[item.Id] = item with { Id = key};
     }
 
     public void Delete(int id)
