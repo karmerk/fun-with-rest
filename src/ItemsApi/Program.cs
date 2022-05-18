@@ -40,6 +40,8 @@ app.MapREST<ItemRepository, int, Item>("/items")
 
 // TODO the RestMapBuilder should also include the map of the top level methods so these can be customized also
 
+// TODO Could make a extension that maps directly to a EF DbSet<T>, pretty sure i might have seen something like that somewhere already
+
 
 app.Run();
 
