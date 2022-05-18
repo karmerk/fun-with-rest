@@ -5,7 +5,7 @@ public record Item(int Id, string Name, string Description);
 
 
 
-public sealed class Items : IRepository<int, Item>
+public sealed class ItemRepository : IRepository<int, Item>
 {
     public readonly Dictionary<int, Item> _items = new Dictionary<int, Item>()
     {
@@ -24,7 +24,7 @@ public sealed class Items : IRepository<int, Item>
     {
         if (_items.TryGetValue(id, out var item))
         {
-            return item;
+            return item with { }; // Return a copy
         }
         return null;
     }
