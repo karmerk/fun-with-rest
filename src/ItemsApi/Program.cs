@@ -35,8 +35,9 @@ if (false)
 }
 
 app.MapREST<ItemRepository, int, Item>("/items")
-    .IncludeProperty(x => x.Name) // Adds endpoint /items/{key}/name
-    .IncludeProperty(x => x.Description); // addeds /items/{key}/Description
+    .IncludeProperty(x => x.Name) // Adds endpoint /items/{key}/Name
+    .IncludeProperty(x => x.Description) // addeds /items/{key}/Description
+    .IncludeProperty(x => x.SubItem);
 
 // TODO the RestMapBuilder should also include the map of the top level methods so these can be customized also
 
@@ -93,55 +94,57 @@ public sealed class RestMapBuilder<TRepository, TKey, T>
 
     public RestMapBuilder<TRepository, TKey, T> IncludeProperty<TProperty>(Expression<Func<T, TProperty>> selector)
     {
-        var property = (PropertyInfo)((MemberExpression)selector.Body).Member; // Some error handling might be nice
-        var name = property.Name;
+        var accessor = PropertyAccessor.From(selector);
+        var property = accessor.PropertyInfo;
 
+        var name = property.Name;
         var route = $"{_route}/{name}";
 
-        // TODO Could be awesome to make without reflection
-        // also a lot of error handling could be nice
-
-        _routeBuilder.MapPost(route, (TKey key, [Microsoft.AspNetCore.Mvc.FromBody] TProperty value, IRepository<TKey, T> repository) =>
+        if(accessor.CanGetValue)
         {
-            var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
-            var existing = property.GetValue(entity);
-            if (existing != null)
+            _routeBuilder.MapGet(route, (TKey key, IRepository<TKey, T> repository) =>
             {
-                throw new InvalidOperationException("Already exists");
+                var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
+                var value = accessor.GetValue(entity);
+                // TODO cannot return null, if the value is null then it should be a not found?
+
+                return value;
+            });
+        }
+
+        if (accessor.CanSetValue)
+        {
+            _routeBuilder.MapPost(route, (TKey key, [Microsoft.AspNetCore.Mvc.FromBody] TProperty value, IRepository<TKey, T> repository) =>
+            {
+                var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
+                var existing = accessor.GetValue(entity);
+                if (existing != null)
+                {
+                    throw new InvalidOperationException("Already exists");
+                }
+
+                repository.Update(key, entity);
+            });
+
+            _routeBuilder.MapPut(route, (TKey key, [Microsoft.AspNetCore.Mvc.FromBody] TProperty value, IRepository<TKey, T> repository, HttpContext context) =>
+            {
+                var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
+                accessor.SetValue(entity, value);
+
+                repository.Update(key, entity);
+            });
+
+            if (Nullable.GetUnderlyingType(property.PropertyType) != null)
+            {
+                _routeBuilder.MapDelete(route, (TKey key, IRepository<TKey, T> repository) =>
+                {
+                    var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
+                    accessor.SetValue(entity, default!); // because the UnderlyingType is not null, it should be a nullable type.. default should therefor be null
+
+                    repository.Update(key, entity);
+                });
             }
-
-            property.SetValue(entity, value);
-            repository.Update(key, entity);
-        });
-
-        _routeBuilder.MapGet(route, (TKey key, IRepository<TKey, T> repository) =>
-        {
-            var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
-            var value = property.GetValue(entity);
-
-            // TODO cannot return null, if the value is null then it should be a not found?
-
-            return (TProperty)value;
-        });
-
-        _routeBuilder.MapPut(route, (TKey key, [Microsoft.AspNetCore.Mvc.FromBody] TProperty value, IRepository<TKey, T> repository, HttpContext context) =>
-        {
-            var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
-            
-            // So aparrently i can use reflection to modify properties on readonly record types
-            property.SetValue(entity, value);
-            repository.Update(key, entity);
-        });
-
-        _routeBuilder.MapDelete(route, (TKey key, IRepository<TKey, T> repository) =>
-        {
-            var entity = repository.Read(key) ?? throw new InvalidOperationException("Not found");
-
-            // TODO Yeah - but what if the property is not nullable?
-            property.SetValue(entity, null);
-            repository.Update(key, entity);
-        });
-
+        }
         return this;
     }
 }

@@ -1,6 +1,8 @@
 ﻿namespace ItemsApi;
 
-public record Item(int Id, string Name, string Description);
+public record SubItem(int Count, string Name);
+
+public record Item(int Id, string Name, string Description, SubItem SubItem);
 
 
 
@@ -9,10 +11,10 @@ public sealed class ItemRepository : IRepository<int, Item>
 {
     public readonly Dictionary<int, Item> _items = new Dictionary<int, Item>()
     {
-        { 1, new Item(1, "Item 1", "Description 1") },
-        { 2, new Item(2, "Item 2", "Description 2") },
-        { 3, new Item(3, "Item 3", "Description 3") },
-        { 4, new Item(4, "Item 4", "Description 4") },
+        { 1, new Item(1, "Item 1", "Description 1", new SubItem(3, "Sub 1") )},
+        { 2, new Item(2, "Item 2", "Description 2", new SubItem(3, "Sub 1") )},
+        { 3, new Item(3, "Item 3", "Description 3", new SubItem(3, "Sub 1") )},
+        { 4, new Item(4, "Item 4", "Description 4", new SubItem(3, "sub 1") )},
     };
 
     public void Create(int key, Item item)
