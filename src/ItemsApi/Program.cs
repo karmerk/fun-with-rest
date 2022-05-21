@@ -36,10 +36,12 @@ if (false)
 
 app.MapREST<ItemRepository, int, Item>("/items")
     .IncludeProperty(x => x.Name) // Adds endpoint /items/{key}/Name
-    .IncludeProperty(x => x.Description) // addeds /items/{key}/Description
-    .IncludeProperty(x => x.SubItem);
+    .IncludeProperty(x => x.Description) // Sdds /items/{key}/Description
+    .IncludeProperty(x => x.SubItem); // Adds complex type /items/{key}/SubItem
+
 
 // TODO the RestMapBuilder should also include the map of the top level methods so these can be customized also
+
 
 // TODO Could make a extension that maps directly to a EF DbSet<T>, pretty sure i might have seen something like that somewhere already
 
